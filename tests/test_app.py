@@ -2,9 +2,10 @@ import copy
 from io import BytesIO
 import json
 import unittest
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
-from app import SAMPLE, advise, analyze, ollama_model, ollama_status
+from app import HIGH_CONSUMPTION_SAMPLE, Handler, SAMPLE, advise, analyze, ollama_model, ollama_status
 
 
 class AppTests(unittest.TestCase):
@@ -50,6 +51,55 @@ class AppTests(unittest.TestCase):
         self.assertGreater(report["opportunities"][0]["energy_reduction_kwh"], 0)
         self.assertEqual(report["opportunities"][0]["modeled_variable_cost_reduction_brl"], 0)
 
+    def test_high_consumption_case_uses_more_energy_at_the_same_rate(self):
+        report = analyze(copy.deepcopy(HIGH_CONSUMPTION_SAMPLE))
+        self.assertEqual(report["rate"], self.config["rate"])
+        self.assertEqual(report["days"], 30)
+        self.assertEqual(report["total"]["baseline_kwh"], 2011.2)
+        self.assertEqual(report["total"]["baseline_cost_brl"], 2111.76)
+        self.assertEqual(report["evidence"], "manual_estimate")
+        best = report["opportunities"][0]
+        self.assertEqual(best["id"], "ac-living")
+        self.assertEqual(best["watts"], best["plannedWatts"])
+        self.assertEqual(best["hours"], 8)
+        self.assertEqual(best["plannedHours"], 2)
+        self.assertEqual(best["energy_reduction_kwh"], 270)
+        self.assertEqual(best["modeled_variable_cost_reduction_brl"], 283.5)
+        self.assertEqual(best["household_after_kwh"], 1741.2)
+        self.assertEqual(best["household_after_cost_brl"], 1828.26)
+
+    def test_high_consumption_case_preserves_essential_loads(self):
+        config = copy.deepcopy(HIGH_CONSUMPTION_SAMPLE)
+        rows = {row["id"]: row for row in analyze(config)["devices"]}
+        for identity in ["work", "fridge", "freezer", "ac-bedroom", "ev", "router"]:
+            with self.subTest(identity=identity):
+                self.assertTrue(rows[identity]["protected"])
+                self.assertEqual(rows[identity]["energy_reduction_kwh"], 0)
+        self.assertEqual(rows["ev"]["baseline_kwh"], 216)
+        self.assertEqual(rows["shower"]["baseline_kwh"], 225)
+        self.assertEqual(rows["shower"]["energy_reduction_kwh"], 56.25)
+        self.assertEqual(rows["dryer"]["energy_reduction_kwh"], 37.5)
+        self.assertEqual(rows["fridge"]["baseline_kwh"], 64.8)
+        self.assertEqual(rows["freezer"]["baseline_kwh"], 39.6)
+
+    def test_sample_routes_keep_the_original_case_and_reject_unknown_paths(self):
+        handler = Handler.__new__(Handler)
+        handler.server = SimpleNamespace(server_port=8765)
+        handler.headers = {"Host": "127.0.0.1:8765"}
+        handler.send = Mock()
+        for path, expected in [("/api/sample", SAMPLE), ("/api/sample/high-consumption", HIGH_CONSUMPTION_SAMPLE)]:
+            with self.subTest(path=path):
+                handler.path = path
+                handler.do_GET()
+                handler.send.assert_called_with(200, expected)
+        handler.path = "/api/sample/unknown"
+        handler.do_GET()
+        self.assertEqual(handler.send.call_args.args[0], 404)
+        handler.path = "/api/sample/high-consumption"
+        handler.headers["Host"] = "example.com"
+        handler.do_GET()
+        self.assertEqual(handler.send.call_args.args[0], 403)
+
     def model_response(self, candidate_id="tv", decision="recommend"):
         content = json.dumps({"decision": decision, "candidate_id": candidate_id, "reason": "Compatível com a rotina.",
                               "next_step": "Confirme o período de uso.", "question": "Esse ajuste é possível?"})
@@ -68,6 +118,16 @@ class AppTests(unittest.TestCase):
         self.assertEqual(result["candidate"]["modeled_variable_cost_reduction_brl"], 3.15)
         self.assertEqual(result["skill"]["name"], "household-energy-coach")
         self.assertEqual(result["experiment"]["duration_days"], 7)
+
+    def test_advisor_accepts_high_consumption_choice_and_rejects_essential_cooling(self):
+        config = copy.deepcopy(HIGH_CONSUMPTION_SAMPLE)
+        with patch("app.request.urlopen", return_value=self.model_response("ac-living")):
+            result = advise(config)
+        self.assertEqual(result["candidate"]["household_after_cost_brl"], 1828.26)
+        self.assertEqual(result["experiment"]["appliance_id"], "ac-living")
+        with patch("app.request.urlopen", return_value=self.model_response("ac-bedroom")):
+            with self.assertRaisesRegex(ValueError, "fora das opções"):
+                advise(config)
 
     def test_invalid_or_protected_model_choice_is_rejected(self):
         for identity in ["invented", "work"]:

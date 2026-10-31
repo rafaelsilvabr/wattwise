@@ -14,6 +14,7 @@ from energy_skill import answer_history, experiment_for, load_skill, reply_schem
 
 ROOT = Path(__file__).parent
 SAMPLE = json.loads((ROOT / "examples" / "family-household.json").read_text(encoding="utf-8"))
+HIGH_CONSUMPTION_SAMPLE = json.loads((ROOT / "examples" / "high-consumption-household.json").read_text(encoding="utf-8"))
 
 
 def analyze(config):
@@ -160,6 +161,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(403, {"error": "Use o endereço local do aplicativo."})
         if self.path == "/api/sample":
             return self.send(200, SAMPLE)
+        if self.path == "/api/sample/high-consumption":
+            return self.send(200, HIGH_CONSUMPTION_SAMPLE)
         if self.path == "/api/status":
             return self.send(200, ollama_status())
         files = {"/": ("index.html", "text/html; charset=utf-8"),

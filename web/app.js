@@ -4,6 +4,10 @@ const money = (n) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency
 const num = (n, digits = 1) => new Intl.NumberFormat('pt-BR', {maximumFractionDigits: digits}).format(n);
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY = 'wattwise-mvp-v1';
+const SAMPLE_OPTIONS = {
+  family: {path: '/api/sample', scenario: 'family-of-three-v1', label: 'Família · 3 pessoas'},
+  'high-consumption': {path: '/api/sample/high-consumption', scenario: 'high-consumption-five-person-v1', label: 'Alto consumo · 5 pessoas'}
+};
 let config = {rate: 1.05, days: 30, context: '', devices: []};
 let history = [], report = null, chosen = null, version = 0, editing = null, sample = false, followupQuestion = '';
 let toastTimer, analysisTimer, analysisController;
@@ -36,13 +40,19 @@ async function api(path, body, signal) {
     method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body), signal
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Não foi possível concluir. Tente novamente.');
+  if (!response.ok) {
+    const error = new Error(data.error || 'Não foi possível concluir. Tente novamente.');
+    error.status = response.status;
+    throw error;
+  }
   return data;
 }
 function syncFields() {
   $('rate').value = config.rate; $('days').value = config.days;
   $('context').value = config.context;
-  $('data-label').textContent = sample ? 'Exemplo fictício · estimativa manual' : 'Estimativa manual';
+  const loadedSample = Object.entries(SAMPLE_OPTIONS).find(([, option]) => option.scenario === config.scenario);
+  $('data-label').textContent = sample ? `${loadedSample ? loadedSample[1].label + ' · ' : ''}Exemplo fictício · estimativa manual` : 'Estimativa manual';
+  if (sample && loadedSample) $('sample-scenario').value = loadedSample[0];
   const count = (config.advisorAnswers || []).length;
   $('advisor-memory').textContent = count ? `${count} resposta(s) considerada(s) · até 4 por conversa` : 'Sua rotina orienta a escolha.';
   $('clear-answers').hidden = !count;
@@ -146,10 +156,18 @@ for (const [id, key] of [['rate','rate'], ['days','days']]) {
 $('context').onchange = () => { config.context = $('context').value; changed(); };
 $('load-demo').onclick = async () => {
   const previous = structuredClone(config), oldSample = sample;
+  const option = SAMPLE_OPTIONS[$('sample-scenario').value];
+  if (!option || $('load-demo').disabled) return;
+  $('load-demo').disabled = true;
   try {
-    config = await api('/api/sample'); sample = true; changed();
-    toast('Exemplo fictício carregado.', () => { config = previous; sample = oldSample; changed(); toast('Seus dados foram restaurados.'); });
-  } catch { toast('Não foi possível carregar o exemplo. Verifique o servidor.'); }
+    config = await api(option.path); sample = true; changed();
+    toast(`${option.label}: exemplo fictício carregado.`, () => { config = previous; sample = oldSample; changed(); toast('Seus dados foram restaurados.'); });
+  } catch (error) {
+    toast(error.status === 404
+      ? 'Este exemplo precisa da versão atual do servidor. Reinicie o WattWise e recarregue a página.'
+      : 'Não foi possível carregar o exemplo. Confira se o WattWise está em execução e tente novamente.');
+  }
+  finally { $('load-demo').disabled = false; }
 };
 async function status() {
   $('model-status').textContent = 'Verificando Gemma local…';

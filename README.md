@@ -16,7 +16,11 @@ Open **http://127.0.0.1:8765/**. Add an appliance or select **Carregar exemplo**
 
 The default example now covers a three-person family with eleven appliances or operating modes, including an electric shower, refrigerator, bedroom air conditioner, washing machine, microwave, air fryer, and router. Read [the family use case and its assumptions](docs/FAMILY_USE_CASE.md). The refrigerator remains protected; its wattage represents a fictional average across compressor cycles.
 
+For a larger expense scenario, choose **Alto consumo · 5 pessoas** in the example picker and select **Carregar exemplo**. Its 18 appliances or operating modes include three air conditioners, a dryer, electric cooking, and protected EV charging for work. At the same fictional R$1.05/kWh rate, it projects **2,011.20 kWh and R$2,111.76 over 30 days**, compared with the original example's 480.24 kWh and R$504.25. Its largest single proposed change projects **R$283.50 less variable cost (13.42%)**, leaving R$1,828.26: living-room cooling drops from eight to two hours, conditional on comfortable natural ventilation during the remaining hours. Read [the high-consumption use case](docs/HIGH_CONSUMPTION_USE_CASE.md) for assumptions and the one-change comparison. Loading either example can be undone; both remain fictional manual estimates, separate from monitoring telemetry. Load the example again after a fixture update to replace its previously saved version.
+
 The UI starts empty and stores household inputs and the last ten simulations in this browser's local storage. It supports editing, deletion with undo, and exported reports. There is no account, payment flow, remote database, or real meter adapter in this MVP. Use a different `--port` if necessary; saved browser data is specific to the origin, including the port.
+
+After updating Python server code, stop the running app with **Ctrl+C**, run `python app.py` again, and refresh the browser. This server does not reload Python code automatically. Refreshing alone can show a new interface while the old server still lacks a newly added example endpoint.
 
 ### Smart-home monitoring mockup
 
@@ -28,6 +32,7 @@ Developer checks (Node is only needed for these checks):
 
 ```powershell
 node tests/test_monitor.js
+node tests/test_samples.js
 node --check web/monitor.js
 ```
 
