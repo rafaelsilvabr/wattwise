@@ -2,7 +2,7 @@
 
 All appliance powers, schedules, and the R$1.05/kWh variable rate below are **fictional assumptions for the demonstration**. They are not measured values, manufacturer specifications, a current local tariff, or a prediction of the complete electricity bill.
 
-Thirty days; household voltage metadata: 220 V. One resident works from home. The family wants to preserve work, internet availability, food refrigeration, and sleeping comfort. They can consider shorter showers and one fewer hour of air conditioning if comfortable.
+Thirty days. One resident works from home. The family wants to preserve work, internet availability, food refrigeration, and sleeping comfort. They can consider shorter showers and one fewer hour of air conditioning if comfortable.
 
 | Appliance or operating mode | Assumed input power | Use per day | Estimated kWh / 30 days | Proposed experiment |
 | --- | ---: | ---: | ---: | --- |

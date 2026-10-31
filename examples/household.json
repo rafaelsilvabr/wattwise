@@ -1,5 +1,4 @@
 {
-  "household_voltage_v": 220,
   "variable_rate_brl_per_kwh": 1.0,
   "projection_days": 30,
   "appliances": [

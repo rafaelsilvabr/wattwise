@@ -9,7 +9,7 @@ Keep the MVP small: no login, payment integration, automatic switching, hardware
 ## Two-minute demonstration
 
 1. **Problem (15 seconds):** “A high bill tells a family what it spent, but not which practical change is worth trying.”
-2. **Inputs (25 seconds):** Load the fictional example. Show watts, hours, entered price, and protected work usage. Explain that voltage is metadata and that these are estimates.
+2. **Inputs (25 seconds):** Load the fictional example. Show watts, hours, entered price, and protected work usage. Explain that these are estimates.
 3. **AI (35 seconds):** With local Gemma ready, explain the routine and generate one proposal. Point to the selected appliance and its reason. The backend supplies the numerical evidence and validates the selected candidate.
 4. **Outcome (25 seconds):** Show the single-change cost comparison. Save the simulation and export the report. Explain that a real meter will later let the household compare actual consumption.
 5. **Business and impact (20 seconds):** Test a paid household assessment and ongoing monitoring; target households where the plausible savings justify the fee. Connect the outcome to SDG 7.3. Do not promise guaranteed savings or validated revenue.
@@ -24,7 +24,6 @@ If the model is absent or slow, use **Usar maior potencial, sem IA** and say tha
 - A new browser starts empty; the fictional example is one click away.
 - Add/edit an appliance or component. Fractional daily hours work.
 - Essential usage cannot be changed by the proposed plan.
-- Changing voltage with identical watts/hours does not change consumption.
 - Changing rate affects cost, not energy.
 - A comparison applies only the selected change, preserving other baseline uses.
 - Data changes invalidate an earlier selected plan and ignore stale model responses.

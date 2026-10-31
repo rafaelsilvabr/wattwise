@@ -54,7 +54,6 @@ def reduction(before, after, rate):
 
 
 def estimate_household(config):
-    voltage = number(config["household_voltage_v"], "household voltage", positive=True)
     rate = number(config["variable_rate_brl_per_kwh"], "variable rate")
     days = number(config["projection_days"], "projection days", positive=True)
     appliances = config["appliances"]
@@ -70,7 +69,6 @@ def estimate_household(config):
         total_after += after
     return {
         "evidence": "manual_estimate",
-        "household_voltage_v": voltage,
         "period_days": days,
         "variable_rate_brl_per_kwh": rate,
         "appliances": rows,

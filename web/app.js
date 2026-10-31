@@ -4,7 +4,7 @@ const money = (n) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency
 const num = (n, digits = 1) => new Intl.NumberFormat('pt-BR', {maximumFractionDigits: digits}).format(n);
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY = 'wattwise-mvp-v1';
-let config = {voltage: 220, rate: 1.05, days: 30, context: '', devices: []};
+let config = {rate: 1.05, days: 30, context: '', devices: []};
 let history = [], report = null, chosen = null, version = 0, editing = null, sample = false, followupQuestion = '';
 let toastTimer, analysisTimer, analysisController;
 
@@ -14,6 +14,9 @@ try {
     config = stored.config; history = stored.history.slice(0, 10); sample = !!stored.sample;
   }
 } catch { $('storage-status').textContent = 'Armazenamento local indisponível'; }
+
+// Migrate saved profiles without changing appliance usage or conversation history.
+if ('voltage' in config) { delete config.voltage; persist(); }
 
 function persist() {
   try {
@@ -38,7 +41,7 @@ async function api(path, body, signal) {
 }
 function syncFields() {
   $('rate').value = config.rate; $('days').value = config.days;
-  $('voltage').value = config.voltage; $('context').value = config.context;
+  $('context').value = config.context;
   $('data-label').textContent = sample ? 'Exemplo fictício · estimativa manual' : 'Estimativa manual';
   const count = (config.advisorAnswers || []).length;
   $('advisor-memory').textContent = count ? `${count} resposta(s) considerada(s) · até 4 por conversa` : 'Sua rotina orienta a escolha.';
@@ -134,7 +137,7 @@ $('close-dialog').onclick = () => $('device-dialog').close();
 for (const id of ['add-device','empty-add']) $(id).onclick = () => {
   delete $('device-planned-watts').dataset.edited; delete $('device-planned-hours').dataset.edited; openDevice();
 };
-for (const [id, key] of [['rate','rate'], ['days','days'], ['voltage','voltage']]) {
+for (const [id, key] of [['rate','rate'], ['days','days']]) {
   $(id).onchange = () => {
     if (!$(id).checkValidity() || $(id).value === '') { $(id).reportValidity(); return; }
     config[key] = Number($(id).value); changed();

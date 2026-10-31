@@ -1,4 +1,3 @@
-import copy
 import json
 from pathlib import Path
 import unittest
@@ -20,11 +19,6 @@ class EnergyTests(unittest.TestCase):
         self.assertEqual(result["total"]["baseline_kwh"], 78.9)
         self.assertEqual(result["total"]["proposed_kwh"], 57.3)
         self.assertEqual(result["total"]["energy_reduction_kwh"], 21.6)
-
-    def test_voltage_does_not_change_energy(self):
-        changed = copy.deepcopy(self.config)
-        changed["household_voltage_v"] = 127
-        self.assertEqual(estimate_household(changed)["total"], estimate_household(self.config)["total"])
 
     def test_simulation_preserves_fractional_duration_and_zero_fill(self):
         states = [{"hours": 0.3, "watts": 1000}]

@@ -18,6 +18,19 @@ The default example now covers a three-person family with eleven appliances or o
 
 The UI starts empty and stores household inputs and the last ten simulations in this browser's local storage. It supports editing, deletion with undo, and exported reports. There is no account, payment flow, remote database, or real meter adapter in this MVP. Use a different `--port` if necessary; saved browser data is specific to the origin, including the port.
 
+### Smart-home monitoring mockup
+
+Open **Casa conectada** in the sidebar, or visit **http://127.0.0.1:8765/monitor**, to explore a clickable five-room blueprint, nine mock sensors, simulated pairing/disconnection, three household scenarios, a changing power chart, and an energy counter for the active session. Monitoring has its own page and only loads its simulation scripts there; the overview keeps appliance planning and Gemma. Four demo sensors start connected; connection choices are saved separately from household estimates. Pause or resume the simulation at any time.
+
+All these connections and readings are fictional. The monitoring mockup never accesses hardware, requests credentials, controls appliances, or supplies readings to the savings calculator or Gemma. Disconnected sensors show missing data rather than a zero-watt reading. See [the monitoring demo guide](docs/MONITORING_DEMO.md).
+
+Developer checks (Node is only needed for these checks):
+
+```powershell
+node tests/test_monitor.js
+node --check web/monitor.js
+```
+
 ### Gemma through local Ollama
 
 Install [Ollama](https://ollama.com/download), then download and run a local Gemma 4 model:
@@ -57,14 +70,14 @@ python demo.py --mode simulated
 python -m unittest discover -s tests -v
 ```
 
-Edit `examples/household.json` to enter household voltage, an illustrative variable energy rate in BRL/kWh, component watts, and hours of use. Each appliance has a baseline and a proposed daily schedule. States are mutually exclusive; any unallocated hours have an explicit assumption of zero consumption. A state accepts either total `watts` or a `components` list, so a total and its components cannot be counted twice.
+Edit `examples/household.json` to enter an illustrative variable energy rate in BRL/kWh, component watts, and hours of use. Each appliance has a baseline and a proposed daily schedule. States are mutually exclusive; any unallocated hours have an explicit assumption of zero consumption. A state accepts either total `watts` or a `components` list, so a total and its components cannot be counted twice.
 
 ```text
 energy (kWh) = power (W) × hours / 1000
 estimated variable cost = energy × entered BRL/kWh rate
 ```
 
-Voltage is household metadata and is not multiplied into watts. Device compatibility needs the device's own supported voltage specification. Nominal ratings, component estimates, variable loads, and assumed schedules do not establish actual consumption. In particular, a computer power supply's maximum rating is not its continuous power consumption.
+Nominal ratings, component estimates, variable loads, and assumed schedules do not establish actual consumption. In particular, a computer power supply's maximum rating is not its continuous power consumption.
 
 The example contains entirely fictional power values and an illustrative rate of R$1/kWh. It is not an appliance specification or a current utility tariff. Component watts should represent electrical input at the wall; component DC ratings can omit power-supply losses.
 

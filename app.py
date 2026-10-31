@@ -19,7 +19,6 @@ SAMPLE = json.loads((ROOT / "examples" / "family-household.json").read_text(enco
 def analyze(config):
     if not isinstance(config, dict):
         raise ValueError("Envie os dados da sua casa.")
-    voltage = number(config.get("voltage"), "Tensão", positive=True)
     rate = number(config.get("rate"), "Preço por kWh")
     days = number(config.get("days"), "Dias", positive=True)
     if rate > 1000:
@@ -64,7 +63,7 @@ def analyze(config):
     context = config.get("context", "")
     if not isinstance(context, str) or len(context) > 2000:
         raise ValueError("Descreva sua rotina em até 2.000 caracteres.")
-    return {"evidence": "manual_estimate", "voltage": voltage, "rate": rate, "days": days,
+    return {"evidence": "manual_estimate", "rate": rate, "days": days,
             "devices": rows, "opportunities": opportunities,
             "total": {**reduction(before, after, rate), "baseline_cost_brl": round(before * rate, 2)}}
 
@@ -164,8 +163,13 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/status":
             return self.send(200, ollama_status())
         files = {"/": ("index.html", "text/html; charset=utf-8"),
+                 "/monitor": ("monitor.html", "text/html; charset=utf-8"),
+                 "/monitor/": ("monitor.html", "text/html; charset=utf-8"),
                  "/app.js": ("app.js", "text/javascript; charset=utf-8"),
                  "/styles.css": ("styles.css", "text/css; charset=utf-8")}
+        files.update({"/monitor.css": ("monitor.css", "text/css; charset=utf-8"),
+                      "/monitor-core.js": ("monitor-core.js", "text/javascript; charset=utf-8"),
+                      "/monitor.js": ("monitor.js", "text/javascript; charset=utf-8")})
         if self.path not in files:
             return self.send(404, {"error": "Página não encontrada."})
         name, content_type = files[self.path]

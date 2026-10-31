@@ -10,7 +10,7 @@ The project combines social value (more control over household spending), SDG 7.
 
 ## Household experience
 
-1. Enter appliance or component watts, estimated hours, household voltage, and a variable energy price. Label the source of the watt figure. A later feature can read a device label or bill photo and ask the user to confirm extracted fields.
+1. Enter appliance or component watts, estimated hours, and a variable energy price. Label the source of the watt figure. A later feature can read a device label or bill photo and ask the user to confirm extracted fields.
 2. See estimated consumption and modeled cost per appliance. Highlight which conclusions need more measurement.
 3. Tell the agent about constraints: working hours, comfort, budget, and which activities must remain available.
 4. Agree on one change. For the demo: a workstation enters a lower-power state overnight, with active work unchanged.
@@ -49,4 +49,4 @@ Price and demand are unvalidated. Interview households about bills and attempted
 - Next: broader live model evaluation, household usability testing, and richer conversational collection of assumptions.
 - Later: one meter adapter and real comparison windows. Home Assistant is a possible source, subject to the household's actual devices.
 
-Automatic appliance control, electrical installation advice, utility account integration, and full electricity-bill reconstruction are outside the MVP. Household voltage is descriptive; it is not evidence that a plug, load, or appliance is compatible.
+Automatic appliance control, electrical installation advice, utility account integration, and full electricity-bill reconstruction are outside the MVP.

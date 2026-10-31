@@ -1,6 +1,5 @@
 {
   "scenario": "family-of-three-v1",
-  "voltage": 220,
   "rate": 1.05,
   "days": 30,
   "context": "Somos três pessoas. Trabalho em casa e preciso manter meu horário de trabalho. A geladeira e o roteador devem ficar disponíveis o tempo todo. Usamos ar-condicionado para dormir; podemos testar uma hora a menos, desde que o conforto seja preservado. Cada pessoa toma um banho por dia: podemos testar reduzir de dez para oito minutos. Preferimos mudanças sem comprar equipamentos. Todos os valores deste exemplo são fictícios.",
