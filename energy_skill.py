@@ -57,11 +57,14 @@ def validate_reply(answer, candidates):
     raise ValueError("A skill retornou uma decisão fora das opções permitidas.")
 
 
-def experiment_for(candidate):
+def experiment_for(candidate, site_type="household"):
     if candidate is None:
         return None
     return {"duration_days": 7, "evidence": "manual_estimate",
             "appliance_id": candidate["id"],
             "baseline": {"watts": candidate["watts"], "hours_per_day": candidate["hours"]},
             "proposal": {"watts": candidate["plannedWatts"], "hours_per_day": candidate["plannedHours"]},
-            "check": "Observe se a rotina e o conforto foram preservados por uma semana. Sem medidor, registre adesão; a economia continua sendo uma projeção."}
+            "check": (
+                "Acompanhe uma semana da operação pelo procedimento já aprovado, preservando produção, qualidade e segurança. Sem medidor, registre adesão; a economia continua sendo uma projeção."
+                if site_type == "industrial" else
+                "Observe se a rotina e o conforto foram preservados por uma semana. Sem medidor, registre adesão; a economia continua sendo uma projeção.")}

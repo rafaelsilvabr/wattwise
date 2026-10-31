@@ -6,7 +6,8 @@ const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','
 const KEY = 'wattwise-mvp-v1';
 const SAMPLE_OPTIONS = {
   family: {path: '/api/sample', scenario: 'family-of-three-v1', label: 'Família · 3 pessoas'},
-  'high-consumption': {path: '/api/sample/high-consumption', scenario: 'high-consumption-five-person-v1', label: 'Alto consumo · 5 pessoas'}
+  'high-consumption': {path: '/api/sample/high-consumption', scenario: 'high-consumption-five-person-v1', label: 'Alto consumo · 5 pessoas'},
+  industrial: {path: '/api/sample/industrial', scenario: 'industrial-packaging-v1', label: 'Indústria · embalagens'}
 };
 let config = {rate: 1.05, days: 30, context: '', devices: []};
 let history = [], report = null, chosen = null, version = 0, editing = null, sample = false, followupQuestion = '';
@@ -48,6 +49,13 @@ async function api(path, body, signal) {
   return data;
 }
 function syncFields() {
+  const industrial = config.siteType === 'industrial';
+  $('site-name').textContent = industrial ? 'Minha fábrica' : 'Minha casa';
+  $('sidebar-context').textContent = industrial ? 'SUA OPERAÇÃO, MAIS EFICIENTE' : 'SUA CASA, MAIS CONSCIENTE';
+  $('devices-title').textContent = industrial ? 'O que consome na sua fábrica' : 'O que consome na sua casa';
+  $('advisor-description').textContent = industrial
+    ? 'Gemma considera sua operação, esclarece dúvidas e orienta uma experiência que preserve produção, qualidade e segurança.'
+    : 'Gemma considera sua rotina, esclarece dúvidas e orienta uma experiência que preserve o que importa para sua casa.';
   $('rate').value = config.rate; $('days').value = config.days;
   $('context').value = config.context;
   const loadedSample = Object.entries(SAMPLE_OPTIONS).find(([, option]) => option.scenario === config.scenario);

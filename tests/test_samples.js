@@ -7,6 +7,7 @@ const vm = require('node:vm');
 const root = path.join(__dirname, '..');
 const family = JSON.parse(fs.readFileSync(path.join(root, 'examples/family-household.json'), 'utf8'));
 const high = JSON.parse(fs.readFileSync(path.join(root, 'examples/high-consumption-household.json'), 'utf8'));
+const industry = JSON.parse(fs.readFileSync(path.join(root, 'examples/industrial-packaging.json'), 'utf8'));
 const original = {rate: 0.9, days: 20, context: 'Meus dados', devices: []};
 function createApp(saved = JSON.stringify({config: original, history: [], sample: false})) {
   const elements = new Map(), calls = [];
@@ -26,7 +27,7 @@ function createApp(saved = JSON.stringify({config: original, history: [], sample
     fetch: async url => {
       calls.push(url);
       if (app.fail) throw new Error('Unavailable');
-      if (app.missingSample && url === '/api/sample/high-consumption') {
+      if (app.missingSample && (url === '/api/sample/high-consumption' || url === '/api/sample/industrial')) {
         return {ok: false, status: 404, json: async () => ({error: 'Página não encontrada.'})};
       }
       let data;
@@ -34,6 +35,7 @@ function createApp(saved = JSON.stringify({config: original, history: [], sample
       else if (url === '/api/analyze') data = {devices: [], opportunities: [], total: {baseline_kwh: 0, baseline_cost_brl: 0}};
       else if (url === '/api/sample') data = family;
       else if (url === '/api/sample/high-consumption') data = high;
+      else if (url === '/api/sample/industrial') data = industry;
       else throw new Error(`Unexpected request: ${url}`);
       return {ok: true, json: async () => structuredClone(data)};
     }
@@ -78,5 +80,26 @@ function createApp(saved = JSON.stringify({config: original, history: [], sample
   app.missingSample = false;
   await get('load-demo').onclick();
   assert.equal(JSON.parse(app.stored()).config.scenario, high.scenario, 'Loading recovers after the server is updated');
+  get('sample-scenario').value = 'industrial';
+  await get('load-demo').onclick();
+  assert(app.calls.includes('/api/sample/industrial'));
+  assert.equal(JSON.parse(app.stored()).config.siteType, 'industrial');
+  assert.equal(JSON.parse(app.stored()).config.devices.length, 11);
+  assert(get('data-label').textContent.includes('Indústria'));
+  assert.equal(get('site-name').textContent, 'Minha fábrica');
+  assert(get('advisor-description').textContent.includes('produção'));
+  const industrialReload = createApp(app.stored());
+  assert.equal(industrialReload.get('sample-scenario').value, 'industrial');
+  assert.equal(industrialReload.get('site-name').textContent, 'Minha fábrica');
+  get('toast').children.find(child => typeof child === 'object' && child.onclick).onclick();
+  assert.equal(JSON.parse(app.stored()).config.scenario, high.scenario);
+  assert.equal(get('site-name').textContent, 'Minha casa', 'Undo restores household wording');
+  assert(get('advisor-description').textContent.includes('casa'));
+  app.missingSample = true;
+  const beforeIndustrialFailure = app.stored();
+  get('sample-scenario').value = 'industrial';
+  await get('load-demo').onclick();
+  assert.equal(app.stored(), beforeIndustrialFailure);
+  assert(get('toast').children[0].includes('Reinicie o WattWise'));
   console.log('Sample checks passed: selection, persistence, undo, failed loads, and old-server restart guidance.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

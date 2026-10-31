@@ -2,7 +2,7 @@
 
 An open-source household energy agent for Hackday 2026. Help a household understand consumption, choose one practical change, and follow up on its outcome.
 
-**Current MVP:** a Portuguese local web app with manual appliance/component entry, household context, estimated consumption, one-change comparisons, saved simulations, JSON export, and a Gemma 4 advisor through local Ollama. The original command-line calculator remains available. Hardware measurements are a later milestone.
+**Current MVP:** a Portuguese local web app with manual appliance/component entry, household context, estimated consumption, one-change comparisons, saved simulations, JSON export, and a Gemma 4 advisor through local Ollama. It also includes an illustrative industrial example with production constraints. The original command-line calculator remains available. Hardware measurements are a later milestone.
 
 ## Run
 
@@ -16,7 +16,11 @@ Open **http://127.0.0.1:8765/**. Add an appliance or select **Carregar exemplo**
 
 The default example now covers a three-person family with eleven appliances or operating modes, including an electric shower, refrigerator, bedroom air conditioner, washing machine, microwave, air fryer, and router. Read [the family use case and its assumptions](docs/FAMILY_USE_CASE.md). The refrigerator remains protected; its wattage represents a fictional average across compressor cycles.
 
-For a larger expense scenario, choose **Alto consumo · 5 pessoas** in the example picker and select **Carregar exemplo**. Its 18 appliances or operating modes include three air conditioners, a dryer, electric cooking, and protected EV charging for work. At the same fictional R$1.05/kWh rate, it projects **2,011.20 kWh and R$2,111.76 over 30 days**, compared with the original example's 480.24 kWh and R$504.25. Its largest single proposed change projects **R$283.50 less variable cost (13.42%)**, leaving R$1,828.26: living-room cooling drops from eight to two hours, conditional on comfortable natural ventilation during the remaining hours. Read [the high-consumption use case](docs/HIGH_CONSUMPTION_USE_CASE.md) for assumptions and the one-change comparison. Loading either example can be undone; both remain fictional manual estimates, separate from monitoring telemetry. Load the example again after a fixture update to replace its previously saved version.
+For a larger expense scenario, choose **Alto consumo · 5 pessoas** in the example picker and select **Carregar exemplo**. Its 18 appliances or operating modes include three air conditioners, a dryer, electric cooking, and protected EV charging for work. At the same fictional R$1.05/kWh rate, it projects **2,011.20 kWh and R$2,111.76 over 30 days**, compared with the original example's 480.24 kWh and R$504.25. Its largest single proposed change projects **R$283.50 less variable cost (13.42%)**, leaving R$1,828.26: living-room cooling drops from eight to two hours, conditional on comfortable natural ventilation during the remaining hours. Read [the high-consumption use case](docs/HIGH_CONSUMPTION_USE_CASE.md) for assumptions and the one-change comparison.
+
+Choose **Indústria · embalagens** for a fictional factory with 11 equipment/mode entries and 24 eight-hour production days across a 30-day period. It projects **21,645.60 kWh and R$22,727.88**, with **R$2,419.20 (10.64%)** from one proposed change to compressor idle time under an assumed, already approved shutdown schedule. Production, extraction, cooling, and safety loads stay protected. Read [the industrial use case](docs/INDUSTRIAL_USE_CASE.md) for calendar-day equivalents and limitations. This is an illustrative energy-cost comparison, not a complete industrial billing or equipment-control system.
+
+Loading an example can be undone; all examples remain fictional manual estimates, separate from monitoring telemetry. Load an example again after a fixture update to replace its previously saved version.
 
 The UI starts empty and stores household inputs and the last ten simulations in this browser's local storage. It supports editing, deletion with undo, and exported reports. There is no account, payment flow, remote database, or real meter adapter in this MVP. Use a different `--port` if necessary; saved browser data is specific to the origin, including the port.
 
@@ -53,7 +57,7 @@ python app.py
 
 The backend calls `http://127.0.0.1:11434/api/chat` with non-streaming structured output and `think: false` for concise, interactive replies. It uses a 4096-token context and bounded output. Model-generated choices are checked against eligible, precomputed changes. Protected uses cannot be changed. The interface renders the model's explanation as text; the numerical results come from the calculator. The local integration rejects cloud model tags.
 
-The advisor loads its behavior from `skills/household-energy-coach/SKILL.md`. It can ask for clarification before recommending a change and considers up to four follow-up answers. Editing household inputs resets those answers. Recommendations include a seven-day experiment; savings remain projections until supported by real measurements.
+The advisor loads its behavior from `skills/household-energy-coach/SKILL.md`. It can ask for clarification before recommending a change and considers up to four follow-up answers. Editing inputs resets those answers. Recommendations include a seven-day experiment; savings remain projections until supported by real measurements. The industrial profile supplies `site_type: industrial` to the advisor and uses follow-up language about production, quality, and safety. Legacy profiles default to household behavior.
 
 No Ollama installation or model weights are included in this repository or automatically downloaded by the app. After the model is downloaded, local inference does not require a hosted API key. Performance depends on hardware; the first load can be slower. If Ollama is unavailable, **Usar maior potencial, sem IA** remains available and explicitly labels its numerical ranking as non-AI. It does not impersonate a model response.
 

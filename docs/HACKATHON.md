@@ -23,6 +23,7 @@ If the model is absent or slow, use **Usar maior potencial, sem IA** and say tha
 - Start with `python app.py`; open http://127.0.0.1:8765/.
 - A new browser starts empty; the fictional example is one click away.
 - Switch between **Família · 3 pessoas** and **Alto consumo · 5 pessoas** with the example picker and load button. The high-consumption case projects R$2,111.76 over 30 days at the same fictional rate; its largest single change projects R$283.50 less variable cost (13.42%), conditional on comfortable natural ventilation outside two peak-heat hours. Undo restores the previous profile.
+- Load **Indústria · embalagens** for the industrial extension: R$22,727.88 modeled variable cost and R$2,419.20 projected reduction from one change under the fixture's already approved compressor schedule. Show protected production and the distinction between operating days and calendar-day equivalent hours. See `INDUSTRIAL_USE_CASE.md`; do not present the example as measured industrial savings or a complete bill calculation.
 - Add/edit an appliance or component. Fractional daily hours work.
 - Essential usage cannot be changed by the proposed plan.
 - Changing rate affects cost, not energy.

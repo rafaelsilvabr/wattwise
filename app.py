@@ -15,11 +15,15 @@ from energy_skill import answer_history, experiment_for, load_skill, reply_schem
 ROOT = Path(__file__).parent
 SAMPLE = json.loads((ROOT / "examples" / "family-household.json").read_text(encoding="utf-8"))
 HIGH_CONSUMPTION_SAMPLE = json.loads((ROOT / "examples" / "high-consumption-household.json").read_text(encoding="utf-8"))
+INDUSTRIAL_SAMPLE = json.loads((ROOT / "examples" / "industrial-packaging.json").read_text(encoding="utf-8"))
 
 
 def analyze(config):
     if not isinstance(config, dict):
         raise ValueError("Envie os dados da sua casa.")
+    site_type = config.get("siteType", "household")
+    if site_type not in ("household", "industrial"):
+        raise ValueError("Escolha um perfil doméstico ou industrial.")
     rate = number(config.get("rate"), "Preço por kWh")
     days = number(config.get("days"), "Dias", positive=True)
     if rate > 1000:
@@ -64,7 +68,7 @@ def analyze(config):
     context = config.get("context", "")
     if not isinstance(context, str) or len(context) > 2000:
         raise ValueError("Descreva sua rotina em até 2.000 caracteres.")
-    return {"evidence": "manual_estimate", "rate": rate, "days": days,
+    return {"evidence": "manual_estimate", "site_type": site_type, "rate": rate, "days": days,
             "devices": rows, "opportunities": opportunities,
             "total": {**reduction(before, after, rate), "baseline_cost_brl": round(before * rate, 2)}}
 
@@ -101,6 +105,7 @@ def advise(config):
                "messages": [{"role": "system", "content": system},
                             {"role": "user", "content": json.dumps({
                                 "task": "ask_one_question" if clarification_only else "choose_or_clarify",
+                                "site_type": report["site_type"],
                                 "routine": config.get("context", ""), "answers": answers,
                                 "evidence": "manual_estimate",
                                 "highest_consumers": [{k: d[k] for k in ("name", "watts", "hours", "protected")}
@@ -130,7 +135,7 @@ def advise(config):
     if not config.get("context", "").strip() and not answers and candidate is not None:
         raise ValueError("Conte um pouco sobre sua rotina antes de receber uma recomendação.")
     return {"provider": "ollama", "model": model, "evidence": "manual_estimate",
-            "decision": answer["decision"], "experiment": experiment_for(candidate),
+            "decision": answer["decision"], "experiment": experiment_for(candidate, report["site_type"]),
             "phase": "clarify" if clarification_only else "choose",
             "skill": {"name": skill["name"], "sha256": skill["sha256"]},
             "considered_candidate_ids": [c["id"] for c in candidates], "answers_considered": len(answers),
@@ -163,6 +168,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, SAMPLE)
         if self.path == "/api/sample/high-consumption":
             return self.send(200, HIGH_CONSUMPTION_SAMPLE)
+        if self.path == "/api/sample/industrial":
+            return self.send(200, INDUSTRIAL_SAMPLE)
         if self.path == "/api/status":
             return self.send(200, ollama_status())
         files = {"/": ("index.html", "text/html; charset=utf-8"),

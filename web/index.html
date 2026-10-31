@@ -12,7 +12,7 @@
 <a href="#main" class="skip">Pular para o conteúdo</a>
 <aside class="sidebar">
   <a class="brand" href="/"><span class="brand-icon">ϟ</span> WattWise<span class="brand-dot">.</span></a>
-  <p class="sidebar-label">SUA CASA, MAIS CONSCIENTE</p>
+  <p class="sidebar-label" id="sidebar-context">SUA CASA, MAIS CONSCIENTE</p>
   <nav aria-label="Navegação principal">
     <a class="nav-link active" href="/"><span>◫</span> Visão geral</a>
     <a class="nav-link" href="/monitor"><span>⌁</span> Casa conectada</a>
@@ -23,11 +23,11 @@
   <div class="sidebar-bottom"><div class="leaf">↗</div><strong>Menos desperdício.<br>Mais possibilidades.</strong><p>Uma mudança possível de cada vez.</p><span class="sdg">ODS 7 · Energia acessível e limpa</span></div>
 </aside>
 <div class="workspace">
-  <header class="topbar"><span>Minha casa <span class="breadcrumb">/ Visão geral</span></span><div class="topbar-right"><span id="storage-status" class="saved">● Salvo neste navegador</span><span class="avatar" aria-label="Perfil local">MC</span></div></header>
+  <header class="topbar"><span><span id="site-name">Minha casa</span> <span class="breadcrumb">/ Visão geral</span></span><div class="topbar-right"><span id="storage-status" class="saved">● Salvo neste navegador</span><span class="avatar" aria-label="Perfil local">MC</span></div></header>
   <main id="main">
-    <div class="page-heading"><div><div class="eyebrow">ENERGIA QUE FAZ SENTIDO</div><h1>Entenda sua energia.<br><span>Escolha como economizar.</span></h1><p>Descubra o que pesa no consumo e teste uma mudança que cabe na sua rotina.</p></div><div class="sample-controls"><label for="sample-scenario">Escolha um exemplo fictício</label><select id="sample-scenario"><option value="family">Família · 3 pessoas</option><option value="high-consumption">Alto consumo · 5 pessoas</option></select><button class="button secondary" id="load-demo">↻ Carregar exemplo</button></div></div>
+    <div class="page-heading"><div><div class="eyebrow">ENERGIA QUE FAZ SENTIDO</div><h1>Entenda sua energia.<br><span>Escolha como economizar.</span></h1><p>Descubra o que pesa no consumo e teste uma mudança que cabe na sua rotina.</p></div><div class="sample-controls"><label for="sample-scenario">Escolha um exemplo fictício</label><select id="sample-scenario"><option value="family">Família · 3 pessoas</option><option value="high-consumption">Alto consumo · 5 pessoas</option><option value="industrial">Indústria · embalagens</option></select><button class="button secondary" id="load-demo">↻ Carregar exemplo</button></div></div>
     <div class="evidence-banner"><span class="evidence-dot"></span><strong id="data-label">Estimativa manual</strong><span>Os valores vêm das potências e dos horários informados. Não são medições reais.</span></div>
-    <section class="home-settings" aria-label="Parâmetros da casa">
+    <section class="home-settings" aria-label="Parâmetros de consumo">
       <label>Preço da energia <div class="input-unit"><span>R$</span><input id="rate" type="number" min="0" step="0.01" required aria-label="Preço da energia por kWh"><span>/ kWh</span></div></label>
       <label>Período <div class="input-unit"><input id="days" type="number" min="1" max="366" step="1" required aria-label="Período em dias"><span>dias</span></div></label>
       <p>O consumo é calculado com <strong>watts × horas ÷ 1.000</strong>. Informe uma potência média e seu tempo de uso.</p>
@@ -40,7 +40,7 @@
     </section>
     <div class="content-grid">
       <section class="panel" id="devices-section">
-        <div class="panel-heading"><div><div class="eyebrow">01 / CONHECER</div><h2>O que consome na sua casa</h2></div><button class="button small secondary" id="add-device">+ Aparelho</button></div>
+        <div class="panel-heading"><div><div class="eyebrow">01 / CONHECER</div><h2 id="devices-title">O que consome na sua casa</h2></div><button class="button small secondary" id="add-device">+ Aparelho</button></div>
         <p class="section-description">Cadastre um aparelho ou componente por linha. Use modos separados para períodos diferentes, sem contar o mesmo consumo duas vezes.</p>
         <div id="devices" class="device-list"></div>
         <div id="empty-devices" class="empty" hidden><span>⌂</span><h3>Sua casa começa aqui</h3><p>Adicione seu primeiro aparelho ou carregue o exemplo para explorar.</p><button class="button primary" id="empty-add">Adicionar aparelho</button></div>
@@ -48,7 +48,7 @@
       </section>
       <section class="panel coach-panel" id="plan-section">
         <div class="panel-heading"><div><div class="eyebrow">02 / ESCOLHER</div><h2>Seu próximo passo</h2></div><span class="ai-emblem">✧</span></div>
-        <p class="section-description">Gemma considera sua rotina, esclarece dúvidas e orienta uma experiência que preserve o que importa para sua casa.</p>
+        <p class="section-description" id="advisor-description">Gemma considera sua rotina, esclarece dúvidas e orienta uma experiência que preserve o que importa para sua casa.</p>
         <label for="context" class="context-label">O que precisamos respeitar?</label><textarea id="context" rows="3" maxlength="2000" placeholder="Ex.: trabalho em casa e não quero reduzir meu horário de trabalho."></textarea>
         <div class="model-status"><span id="advisor-memory">Sua rotina orienta a escolha.</span><button class="text-button" id="clear-answers" hidden>Recomeçar conversa</button></div>
         <div class="model-status"><span id="model-dot" class="status-dot"></span><span id="model-status">Verificando Gemma local…</span><button class="text-button" id="check-model" aria-label="Verificar conexão com Ollama">↻</button></div>

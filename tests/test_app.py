@@ -5,7 +5,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from app import HIGH_CONSUMPTION_SAMPLE, Handler, SAMPLE, advise, analyze, ollama_model, ollama_status
+from app import HIGH_CONSUMPTION_SAMPLE, INDUSTRIAL_SAMPLE, Handler, SAMPLE, advise, analyze, ollama_model, ollama_status
 
 
 class AppTests(unittest.TestCase):
@@ -87,7 +87,8 @@ class AppTests(unittest.TestCase):
         handler.server = SimpleNamespace(server_port=8765)
         handler.headers = {"Host": "127.0.0.1:8765"}
         handler.send = Mock()
-        for path, expected in [("/api/sample", SAMPLE), ("/api/sample/high-consumption", HIGH_CONSUMPTION_SAMPLE)]:
+        for path, expected in [("/api/sample", SAMPLE), ("/api/sample/high-consumption", HIGH_CONSUMPTION_SAMPLE),
+                               ("/api/sample/industrial", INDUSTRIAL_SAMPLE)]:
             with self.subTest(path=path):
                 handler.path = path
                 handler.do_GET()
@@ -99,6 +100,40 @@ class AppTests(unittest.TestCase):
         handler.headers["Host"] = "example.com"
         handler.do_GET()
         self.assertEqual(handler.send.call_args.args[0], 403)
+
+    def test_industrial_case_preserves_production_in_single_change_comparison(self):
+        report = analyze(copy.deepcopy(INDUSTRIAL_SAMPLE))
+        self.assertEqual(report["site_type"], "industrial")
+        self.assertEqual(report["total"]["baseline_kwh"], 21645.6)
+        self.assertEqual(report["total"]["baseline_cost_brl"], 22727.88)
+        self.assertEqual(report["evidence"], "manual_estimate")
+        best = report["opportunities"][0]
+        self.assertEqual(best["id"], "compressor-idle")
+        self.assertEqual(best["energy_reduction_kwh"], 2304)
+        self.assertEqual(best["modeled_variable_cost_reduction_brl"], 2419.2)
+        self.assertEqual(best["household_after_kwh"], 19341.6)
+        self.assertEqual(best["household_after_cost_brl"], 20308.68)
+        rows = {row["id"]: row for row in report["devices"]}
+        for identity in ["production-line", "compressor-active", "extraction", "process-cooling", "production-lighting", "safety-network"]:
+            with self.subTest(identity=identity):
+                self.assertTrue(rows[identity]["protected"])
+                self.assertEqual(rows[identity]["energy_reduction_kwh"], 0)
+
+    def test_industrial_daily_equivalents_include_operating_and_calendar_days(self):
+        rows = {row["id"]: row for row in analyze(copy.deepcopy(INDUSTRIAL_SAMPLE))["devices"]}
+        self.assertEqual(rows["production-line"]["baseline_kwh"], 45 * 8 * 24)
+        self.assertEqual(rows["compressor-active"]["baseline_kwh"], 22 * 8 * 24)
+        self.assertEqual(rows["compressor-idle"]["baseline_kwh"], 6 * 16 * 24)
+        self.assertEqual(rows["safety-network"]["baseline_kwh"], 0.25 * 24 * 30)
+        self.assertEqual(rows["warehouse-lighting"]["energy_reduction_kwh"], 3 * (16 - 4) * 24)
+
+    def test_unknown_site_type_is_rejected_and_legacy_households_keep_the_default(self):
+        self.assertEqual(analyze(self.config)["site_type"], "household")
+        for invalid in ["unknown", None, [], True]:
+            with self.subTest(site_type=invalid):
+                self.config["siteType"] = invalid
+                with self.assertRaisesRegex(ValueError, "perfil"):
+                    analyze(self.config)
 
     def model_response(self, candidate_id="tv", decision="recommend"):
         content = json.dumps({"decision": decision, "candidate_id": candidate_id, "reason": "Compatível com a rotina.",
@@ -126,6 +161,20 @@ class AppTests(unittest.TestCase):
         self.assertEqual(result["candidate"]["household_after_cost_brl"], 1828.26)
         self.assertEqual(result["experiment"]["appliance_id"], "ac-living")
         with patch("app.request.urlopen", return_value=self.model_response("ac-bedroom")):
+            with self.assertRaisesRegex(ValueError, "fora das opções"):
+                advise(config)
+
+    def test_industrial_advisor_uses_operational_context_and_protects_active_equipment(self):
+        config = copy.deepcopy(INDUSTRIAL_SAMPLE)
+        with patch("app.request.urlopen", return_value=self.model_response("compressor-idle")) as mocked:
+            result = advise(config)
+        payload = json.loads(mocked.call_args.args[0].data)
+        self.assertEqual(json.loads(payload["messages"][1]["content"])["site_type"], "industrial")
+        self.assertIn("produção", result["experiment"]["check"])
+        self.assertIn("qualidade", result["experiment"]["check"])
+        self.assertNotIn("conforto", result["experiment"]["check"])
+        self.assertEqual(result["candidate"]["household_after_cost_brl"], 20308.68)
+        with patch("app.request.urlopen", return_value=self.model_response("compressor-active")):
             with self.assertRaisesRegex(ValueError, "fora das opções"):
                 advise(config)
 
