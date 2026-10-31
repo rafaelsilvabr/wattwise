@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#174d40">
+  <meta name="description" content="Entenda o consumo da sua casa e experimente uma mudança por vez com o WattWise.">
+  <title>WattWise · Energia com propósito</title>
+  <link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script>
+</head>
+<body>
+<a href="#main" class="skip">Pular para o conteúdo</a>
+<aside class="sidebar">
+  <a class="brand" href="#main"><span class="brand-icon">ϟ</span> WattWise<span class="brand-dot">.</span></a>
+  <p class="sidebar-label">SUA CASA, MAIS CONSCIENTE</p>
+  <nav aria-label="Navegação principal">
+    <a class="nav-link active" href="#main"><span>◫</span> Visão geral</a>
+    <a class="nav-link" href="#devices-section"><span>⌂</span> Meus aparelhos</a>
+    <a class="nav-link" href="#plan-section"><span>✧</span> Plano de economia</a>
+    <a class="nav-link" href="#history-section"><span>↺</span> Simulações salvas</a>
+  </nav>
+  <div class="sidebar-bottom"><div class="leaf">↗</div><strong>Menos desperdício.<br>Mais possibilidades.</strong><p>Uma mudança possível de cada vez.</p><span class="sdg">ODS 7 · Energia acessível e limpa</span></div>
+</aside>
+<div class="workspace">
+  <header class="topbar"><span>Minha casa <span class="breadcrumb">/ Visão geral</span></span><div class="topbar-right"><span id="storage-status" class="saved">● Salvo neste navegador</span><span class="avatar" aria-label="Perfil local">MC</span></div></header>
+  <main id="main">
+    <div class="page-heading"><div><div class="eyebrow">ENERGIA QUE FAZ SENTIDO</div><h1>Entenda sua energia.<br><span>Escolha como economizar.</span></h1><p>Descubra o que pesa no consumo e teste uma mudança que cabe na sua rotina.</p></div><button class="button secondary" id="load-demo">↻ Carregar exemplo</button></div>
+    <div class="evidence-banner"><span class="evidence-dot"></span><strong id="data-label">Estimativa manual</strong><span>Os valores vêm das potências e dos horários informados. Não são medições reais.</span></div>
+    <section class="home-settings" aria-label="Parâmetros da casa">
+      <label>Preço da energia <div class="input-unit"><span>R$</span><input id="rate" type="number" min="0" step="0.01" required aria-label="Preço da energia por kWh"><span>/ kWh</span></div></label>
+      <label>Período <div class="input-unit"><input id="days" type="number" min="1" max="366" step="1" required aria-label="Período em dias"><span>dias</span></div></label>
+      <label>Tensão da casa <div class="input-unit"><select id="voltage" aria-label="Tensão da casa"><option value="127">127 V</option><option value="220">220 V</option></select></div></label>
+      <p>A tensão é uma informação da casa. O consumo é calculado com <strong>watts × horas</strong>.</p>
+    </section>
+    <p id="form-error" class="error" role="alert" hidden></p>
+    <section class="metrics" aria-label="Resumo estimado" aria-live="polite">
+      <article class="metric"><div class="metric-label">Custo de energia estimado <span>↗</span></div><div class="metric-value" id="cost">—</div><p id="cost-caption">Para o período informado</p></article>
+      <article class="metric"><div class="metric-label">Consumo estimado <span>ϟ</span></div><div class="metric-value" id="consumption">—</div><p>A partir da sua lista de aparelhos</p></article>
+      <article class="metric highlight"><div class="metric-label">Potencial da melhor mudança <span>✧</span></div><div class="metric-value" id="potential">—</div><p id="potential-caption">Cadastre uma proposta para comparar</p></article>
+    </section>
+    <div class="content-grid">
+      <section class="panel" id="devices-section">
+        <div class="panel-heading"><div><div class="eyebrow">01 / CONHECER</div><h2>O que consome na sua casa</h2></div><button class="button small secondary" id="add-device">+ Aparelho</button></div>
+        <p class="section-description">Cadastre um aparelho ou componente por linha. Use modos separados para períodos diferentes, sem contar o mesmo consumo duas vezes.</p>
+        <div id="devices" class="device-list"></div>
+        <div id="empty-devices" class="empty" hidden><span>⌂</span><h3>Sua casa começa aqui</h3><p>Adicione seu primeiro aparelho ou carregue o exemplo para explorar.</p><button class="button primary" id="empty-add">Adicionar aparelho</button></div>
+        <div class="calculation-note"><span>ⓘ</span><p>Potências de etiqueta podem ser máximas. Informe uma média de uso quando souber. Horas não cadastradas são consideradas sem consumo.</p></div>
+      </section>
+      <section class="panel coach-panel" id="plan-section">
+        <div class="panel-heading"><div><div class="eyebrow">02 / ESCOLHER</div><h2>Seu próximo passo</h2></div><span class="ai-emblem">✧</span></div>
+        <p class="section-description">Gemma considera sua rotina, esclarece dúvidas e orienta uma experiência que preserve o que importa para sua casa.</p>
+        <label for="context" class="context-label">O que precisamos respeitar?</label><textarea id="context" rows="3" maxlength="2000" placeholder="Ex.: trabalho em casa e não quero reduzir meu horário de trabalho."></textarea>
+        <div class="model-status"><span id="advisor-memory">Sua rotina orienta a escolha.</span><button class="text-button" id="clear-answers" hidden>Recomeçar conversa</button></div>
+        <div class="model-status"><span id="model-dot" class="status-dot"></span><span id="model-status">Verificando Gemma local…</span><button class="text-button" id="check-model" aria-label="Verificar conexão com Ollama">↻</button></div>
+        <button class="button primary full" id="ask-ai">✧ Encontrar uma mudança com Gemma</button>
+        <button class="button text full" id="use-demo-plan">Usar maior potencial, sem IA</button>
+        <div id="ai-error" class="error" role="alert" hidden></div>
+        <details id="model-setup"><summary>Como conectar o Gemma local</summary><p>Instale o Ollama e execute no terminal:</p><code>ollama run gemma4:e2b</code><p>Depois, use ↻ para verificar. O modelo roda no seu computador. A primeira execução exige o download dos pesos.</p></details>
+        <div id="chosen-plan" hidden></div>
+        <form id="advisor-followup" hidden><label for="advisor-answer" id="advisor-question" class="context-label"></label><textarea id="advisor-answer" rows="2" maxlength="300" required placeholder="Conte o que funciona para sua família."></textarea><button class="button secondary full" type="submit" id="send-answer">Responder e atualizar com Gemma ↗</button></form>
+        <div class="plan-placeholder" id="plan-placeholder"><span>↗</span><p>Uma mudança possível.<br><strong>Um resultado para acompanhar.</strong></p></div>
+      </section>
+    </div>
+    <section class="panel comparison-panel" id="comparison-section" hidden>
+      <div class="panel-heading"><div><div class="eyebrow">03 / EXPERIMENTAR</div><h2>Veja o efeito da sua escolha</h2></div><span class="pill">Projeção · não medido</span></div>
+      <div class="comparison-content"><div class="comparison-chart" id="comparison-chart"></div><div class="comparison-insight"><div class="eyebrow">REDUÇÃO ESTIMADA NO PERÍODO</div><div class="big-saving" id="chosen-saving"></div><p id="chosen-caption"></p><button class="button primary" id="save-experiment">Salvar esta simulação ↗</button><button class="button text" id="export-report">Exportar relatório</button></div></div>
+      <p class="footnote">Comparação calculada com suas hipóteses de uso. Um medidor será necessário para acompanhar consumo real. O custo usa o preço por kWh informado; não reconstrói taxas ou a conta completa.</p>
+    </section>
+    <section class="panel history-panel" id="history-section"><div class="panel-heading"><div><div class="eyebrow">SEU CAMINHO</div><h2>Simulações salvas</h2></div><span id="history-count" class="pill">0 registros</span></div><div id="history-list"></div></section>
+    <footer><span class="footer-brand">ϟ WattWise</span><span>Construído para o Hackday 2026 · ODS 7.3</span><span>Dados locais. Escolhas suas.</span></footer>
+  </main>
+</div>
+<dialog id="device-dialog"><form id="device-form"><div class="dialog-heading"><div><div class="eyebrow">SUA CASA</div><h2 id="dialog-title">Novo aparelho</h2></div><button type="button" class="icon-button" id="close-dialog" aria-label="Fechar">×</button></div>
+  <label>Nome do aparelho ou modo de uso<input id="device-name" maxlength="100" required placeholder="Ex.: televisão da sala"></label>
+  <fieldset><legend>Como você usa hoje</legend><div class="two-columns"><label>Potência média (W)<input id="device-watts" type="number" min="0" max="100000" step="0.1" required></label><label>Horas por dia<input id="device-hours" type="number" min="0" max="24" step="0.01" required></label></div></fieldset>
+  <label class="checkbox-label"><input id="device-protected" type="checkbox"> Preservar este uso: é essencial para minha rotina</label>
+  <fieldset id="proposed-fields"><legend>Uma mudança que você pode experimentar</legend><p>Altere o tempo ou a potência média. Se não tiver uma proposta, mantenha os valores atuais.</p><div class="two-columns"><label>Potência proposta (W)<input id="device-planned-watts" type="number" min="0" max="100000" step="0.1" required></label><label>Horas propostas por dia<input id="device-planned-hours" type="number" min="0" max="24" step="0.01" required></label></div></fieldset>
+  <p id="device-error" class="error" role="alert" hidden></p><div class="dialog-actions"><button type="button" class="button danger" id="delete-device" hidden>Excluir</button><button type="submit" class="button primary">Salvar aparelho</button></div>
+</form></dialog>
+<div id="toast" class="toast" role="status" hidden></div>
+</body></html>

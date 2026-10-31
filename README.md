@@ -1,0 +1,112 @@
+# WattWise — working title
+
+An open-source household energy agent for Hackday 2026. Help a household understand consumption, choose one practical change, and follow up on its outcome.
+
+**Current MVP:** a Portuguese local web app with manual appliance/component entry, household context, estimated consumption, one-change comparisons, saved simulations, JSON export, and a Gemma 4 advisor through local Ollama. The original command-line calculator remains available. Hardware measurements are a later milestone.
+
+## Run
+
+Requires Python 3.11+; no dependencies to install.
+
+```powershell
+python app.py
+```
+
+Open **http://127.0.0.1:8765/**. Add an appliance or select **Carregar exemplo**. The example values are fictional. Edit an appliance to specify current and proposed watts/hours; protect essential usage when it must remain unchanged. Set the variable rate and period, describe household constraints, and choose a plan. Only one selected change is included in the comparison; other usage stays at baseline.
+
+The default example now covers a three-person family with eleven appliances or operating modes, including an electric shower, refrigerator, bedroom air conditioner, washing machine, microwave, air fryer, and router. Read [the family use case and its assumptions](docs/FAMILY_USE_CASE.md). The refrigerator remains protected; its wattage represents a fictional average across compressor cycles.
+
+The UI starts empty and stores household inputs and the last ten simulations in this browser's local storage. It supports editing, deletion with undo, and exported reports. There is no account, payment flow, remote database, or real meter adapter in this MVP. Use a different `--port` if necessary; saved browser data is specific to the origin, including the port.
+
+### Gemma through local Ollama
+
+Install [Ollama](https://ollama.com/download), then download and run a local Gemma 4 model:
+
+```powershell
+ollama run gemma4:e2b
+```
+
+Keep Ollama running. In WattWise select the connection refresh button, then **Encontrar uma mudança com Gemma**. Start with E2B and benchmark latency on your machine. A supported larger local model can be selected before starting the app:
+
+```powershell
+$env:OLLAMA_MODEL = 'gemma4:e4b'
+python app.py
+```
+
+The backend calls `http://127.0.0.1:11434/api/chat` with non-streaming structured output and `think: false` for concise, interactive replies. It uses a 4096-token context and bounded output. Model-generated choices are checked against eligible, precomputed changes. Protected uses cannot be changed. The interface renders the model's explanation as text; the numerical results come from the calculator. The local integration rejects cloud model tags.
+
+The advisor loads its behavior from `skills/household-energy-coach/SKILL.md`. It can ask for clarification before recommending a change and considers up to four follow-up answers. Editing household inputs resets those answers. Recommendations include a seven-day experiment; savings remain projections until supported by real measurements.
+
+No Ollama installation or model weights are included in this repository or automatically downloaded by the app. After the model is downloaded, local inference does not require a hosted API key. Performance depends on hardware; the first load can be slower. If Ollama is unavailable, **Usar maior potencial, sem IA** remains available and explicitly labels its numerical ranking as non-AI. It does not impersonate a model response.
+
+Local smoke tests on 31 October 2026: Ollama 0.40.13 with `gemma4:e2b` produced a valid plan for the original workstation fixture in 7.39 seconds using CPU inference. The expanded three-person household case passed in 29.56 seconds and selected the shorter-shower proposal. These are individual calls, not general latency guarantees. The original browser workflow was also exercised with a real model response. See [the latest recorded smoke test](docs/ollama-smoke-test.json).
+
+To repeat the live check with Ollama running:
+
+```powershell
+python scripts/verify_ollama.py
+```
+
+See the official [Gemma 4 Ollama library](https://ollama.com/library/gemma4) and [chat API](https://docs.ollama.com/api/chat).
+
+### CLI and tests
+
+```powershell
+python demo.py
+python demo.py --mode simulated
+python -m unittest discover -s tests -v
+```
+
+Edit `examples/household.json` to enter household voltage, an illustrative variable energy rate in BRL/kWh, component watts, and hours of use. Each appliance has a baseline and a proposed daily schedule. States are mutually exclusive; any unallocated hours have an explicit assumption of zero consumption. A state accepts either total `watts` or a `components` list, so a total and its components cannot be counted twice.
+
+```text
+energy (kWh) = power (W) × hours / 1000
+estimated variable cost = energy × entered BRL/kWh rate
+```
+
+Voltage is household metadata and is not multiplied into watts. Device compatibility needs the device's own supported voltage specification. Nominal ratings, component estimates, variable loads, and assumed schedules do not establish actual consumption. In particular, a computer power supply's maximum rating is not its continuous power consumption.
+
+The example contains entirely fictional power values and an illustrative rate of R$1/kWh. It is not an appliance specification or a current utility tariff. Component watts should represent electrical input at the wall; component DC ratings can omit power-supply losses.
+
+## Evidence labels
+
+| Label | Meaning |
+| --- | --- |
+| `manual_estimate` | Calculated from the entered watts and schedule; projected savings |
+| `simulated` | Generated interval readings; demonstrates the calculation, not a real experiment |
+| Measured — future | Readings from a supported energy monitor, with coverage and comparison checks |
+
+Manual mode projects 30 days according to the input. Simulated mode generates two complete 24-hour windows from those same assumptions and compares their integrated energy. It is a software demonstration, not independent evidence of savings. Missing meter intervals are rejected instead of treated as zero consumption.
+
+The rate is a simplified constant variable rate. Whole electricity bills also include taxes and other charges; a reduction in the modeled energy cost is not a prediction of an identical bill reduction. Time-of-use pricing and minimum billing charges are not modeled.
+
+## Optional hosted Gemma integration for the CLI
+
+Set `GEMINI_API_KEY` privately in your terminal environment, then run:
+
+```powershell
+python demo.py --gemma
+```
+
+This explicitly sends the calculated summary to Google's hosted Gemma API. It requests a Portuguese explanation, a useful follow-up question, and a practical next measurement. The numerical calculation is performed locally. No account names, addresses, or bills are included in this prototype's request. Never commit an API key.
+
+The default is `gemma-4-26b-a4b-it`. Override with `GEMMA_MODEL` for another supported model. The non-AI mode is explicitly a calculator; it does not pretend to have invoked a model. Live API execution requires credentials and has not been validated in this checkout.
+
+## Hackday handoff
+
+Use [the demo script and acceptance checklist](docs/HACKATHON.md). The MVP has one complete manual-input-to-plan journey and a fallback demonstration without a model. Gemma is used for context-sensitive choice and explanation; the model is never trusted to supply the energy calculation.
+
+Automated verification covers energy units, incomplete simulated windows, essential-use protection, single-change comparison, model-choice validation, unavailable Ollama, and cloud-tag rejection. Model responses in the unit suite are mocked; the separate live smoke test calls the actual installed model.
+
+## Next product milestones
+
+See [PROJECT.md](PROJECT.md) for the customer journey and revenue hypothesis and [the current application assessment](docs/CURRENT_STATE.md) for architecture, verification, and known gaps. A recorded four-case local evaluation is available in [skill-evaluation.json](docs/skill-evaluation.json); repeat it with `python scripts/evaluate_skill.py` after changing the model or skill. Next, broaden model evaluation, test the product with households, and connect one real energy monitor. Hardware can supply measured input through a device adapter.
+
+## References
+
+- [Gemma hosted API and supported models](https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api)
+- [Home Assistant energy inputs, power, and energy](https://www.home-assistant.io/docs/energy/)
+- [ANEEL tariff information and excluded bill components](https://www.gov.br/aneel/pt-br/centrais-de-conteudos/relatorios-e-indicadores/tarifas-e-informacoes-economico-financeiras)
+- [UN SDG 7, including target 7.3](https://sdgs.un.org/goals/goal7)
+
+Code license: MIT. The model and hosted API have their own applicable terms.

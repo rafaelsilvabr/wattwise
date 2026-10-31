@@ -1,0 +1,20 @@
+{
+  "scenario": "family-of-three-v1",
+  "voltage": 220,
+  "rate": 1.05,
+  "days": 30,
+  "context": "Somos três pessoas. Trabalho em casa e preciso manter meu horário de trabalho. A geladeira e o roteador devem ficar disponíveis o tempo todo. Usamos ar-condicionado para dormir; podemos testar uma hora a menos, desde que o conforto seja preservado. Cada pessoa toma um banho por dia: podemos testar reduzir de dez para oito minutos. Preferimos mudanças sem comprar equipamentos. Todos os valores deste exemplo são fictícios.",
+  "devices": [
+    {"id": "work", "name": "Computador de trabalho", "watts": 180, "hours": 9, "plannedWatts": 180, "plannedHours": 9, "protected": true},
+    {"id": "idle", "name": "Computador ocioso", "watts": 100, "hours": 8, "plannedWatts": 10, "plannedHours": 8, "protected": false, "note": "Mesmo computador em um período diferente do trabalho. Proposta: modo de suspensão; potência suposta, a confirmar."},
+    {"id": "tv", "name": "Televisão", "watts": 100, "hours": 4, "plannedWatts": 100, "plannedHours": 3, "protected": false},
+    {"id": "light", "name": "Iluminação da casa", "watts": 60, "hours": 6, "plannedWatts": 60, "plannedHours": 4, "protected": false, "note": "Potência total suposta de seis lâmpadas de 10 W. Horas equivalentes com todas acesas."},
+    {"id": "shower", "name": "Chuveiro elétrico", "watts": 5500, "hours": 0.5, "plannedWatts": 5500, "plannedHours": 0.4, "protected": false, "note": "Três banhos de 10 minutos = 30 minutos/dia. Proposta: três banhos de 8 minutos = 24 minutos/dia; mesma potência."},
+    {"id": "fridge", "name": "Geladeira · potência média", "watts": 70, "hours": 24, "plannedWatts": 70, "plannedHours": 24, "protected": true, "note": "70 W é uma média fictícia ao longo do dia, incluindo ciclos do compressor, equivalente a 50,4 kWh em 30 dias. Não é a potência máxima de etiqueta. Manter ligada."},
+    {"id": "ac", "name": "Ar-condicionado do quarto", "watts": 900, "hours": 8, "plannedWatts": 900, "plannedHours": 7, "protected": false, "note": "900 W é uma potência média fictícia durante o uso. Proposta: testar 7 h/noite em vez de 8 h, se confortável. BTU/h não é potência elétrica em W."},
+    {"id": "washer", "name": "Máquina de lavar · média diária", "watts": 500, "hours": 0.5, "plannedWatts": 500, "plannedHours": 0.5, "protected": true, "note": "Hipótese: 15 ciclos de uma hora no período de 30 dias, a 500 W médios. Isso equivale a 0,5 h/dia; não é uma medição de ciclo."},
+    {"id": "microwave", "name": "Micro-ondas", "watts": 1400, "hours": 0.15, "plannedWatts": 1400, "plannedHours": 0.15, "protected": false, "note": "9 minutos/dia. Usar potência elétrica de entrada, não potência útil de aquecimento."},
+    {"id": "airfryer", "name": "Air fryer", "watts": 1500, "hours": 0.3, "plannedWatts": 1500, "plannedHours": 0.3, "protected": false, "note": "18 minutos/dia com potência média fictícia. O termostato pode alterar o consumo real."},
+    {"id": "router", "name": "Roteador de internet", "watts": 12, "hours": 24, "plannedWatts": 12, "plannedHours": 24, "protected": true}
+  ]
+}

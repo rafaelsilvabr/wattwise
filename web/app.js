@@ -1,0 +1,243 @@
+'use strict';
+const $ = (id) => document.getElementById(id);
+const money = (n) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(n);
+const num = (n, digits = 1) => new Intl.NumberFormat('pt-BR', {maximumFractionDigits: digits}).format(n);
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const KEY = 'wattwise-mvp-v1';
+let config = {voltage: 220, rate: 1.05, days: 30, context: '', devices: []};
+let history = [], report = null, chosen = null, version = 0, editing = null, sample = false, followupQuestion = '';
+let toastTimer, analysisTimer, analysisController;
+
+try {
+  const stored = JSON.parse(localStorage.getItem(KEY));
+  if (stored && Array.isArray(stored.config?.devices) && Array.isArray(stored.history)) {
+    config = stored.config; history = stored.history.slice(0, 10); sample = !!stored.sample;
+  }
+} catch { $('storage-status').textContent = 'Armazenamento local indisponível'; }
+
+function persist() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({config, history, sample}));
+    $('storage-status').textContent = '● Salvo neste navegador';
+  } catch { $('storage-status').textContent = 'Não foi possível salvar neste navegador'; }
+}
+function toast(message, action) {
+  clearTimeout(toastTimer);
+  $('toast').replaceChildren(document.createTextNode(message));
+  if (action) { const button = document.createElement('button'); button.textContent = 'Desfazer'; button.onclick = action; $('toast').append(button); }
+  $('toast').hidden = false;
+  toastTimer = setTimeout(() => { $('toast').hidden = true; }, 7000);
+}
+async function api(path, body, signal) {
+  const response = await fetch(path, body === undefined ? {signal} : {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body), signal
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Não foi possível concluir. Tente novamente.');
+  return data;
+}
+function syncFields() {
+  $('rate').value = config.rate; $('days').value = config.days;
+  $('voltage').value = config.voltage; $('context').value = config.context;
+  $('data-label').textContent = sample ? 'Exemplo fictício · estimativa manual' : 'Estimativa manual';
+  const count = (config.advisorAnswers || []).length;
+  $('advisor-memory').textContent = count ? `${count} resposta(s) considerada(s) · até 4 por conversa` : 'Sua rotina orienta a escolha.';
+  $('clear-answers').hidden = !count;
+}
+function changed(preserveAnswers = false) {
+  if (!preserveAnswers) config.advisorAnswers = [];
+  version++; chosen = null; report = null;
+  $('advisor-followup').hidden = true; followupQuestion = '';
+  $('chosen-plan').hidden = true; $('plan-placeholder').hidden = false;
+  $('comparison-section').hidden = true; $('ai-error').hidden = true;
+  persist(); syncFields(); renderDevices(); renderMetrics();
+  clearTimeout(analysisTimer); analysisTimer = setTimeout(refresh, 120);
+}
+function renderDevices() {
+  $('empty-devices').hidden = config.devices.length > 0;
+  const rows = report?.devices || [];
+  const maximum = Math.max(1, ...rows.map(r => r.baseline_kwh));
+  $('devices').innerHTML = config.devices.map((d, i) => {
+    const row = rows.find(r => r.id === d.id);
+    return `<article class="device-row"><div class="device-icon" aria-hidden="true">${['⌘','◴','▣','☼'][i % 4]}</div><div><div class="device-name">${esc(d.name)}${d.protected ? '<span class="protected">Preservar uso</span>' : ''}</div><div class="device-meta">${num(d.watts)} W · ${num(d.hours, 2)} h/dia${row ? ` · ${num(row.baseline_kwh, 2)} kWh` : ''}</div>${d.note ? `<details class="device-meta"><summary>Hipóteses deste exemplo</summary>${esc(d.note)}</details>` : ''}<div class="device-bar" aria-hidden="true"><span style="width:${row ? Math.max(0, row.baseline_kwh / maximum * 100) : 0}%"></span></div></div><div class="device-amount">${row ? money(row.baseline_cost_brl) : '—'}<button class="text-button" data-edit="${esc(d.id)}" aria-label="Editar ${esc(d.name)}">Editar ↗</button></div></article>`;
+  }).join('');
+  $('devices').querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openDevice(b.dataset.edit));
+}
+function renderMetrics() {
+  $('cost').textContent = report ? money(report.total.baseline_cost_brl) : '—';
+  $('consumption').innerHTML = report ? `${num(report.total.baseline_kwh, 2)} <small>kWh</small>` : '—';
+  $('cost-caption').textContent = `Para ${num(config.days)} dias · custo variável`;
+  const best = report?.opportunities[0];
+  $('potential').textContent = best ? money(best.modeled_variable_cost_reduction_brl) : '—';
+  $('potential-caption').textContent = best ? `${num(best.energy_reduction_kwh, 2)} kWh · uma mudança em ${num(config.days)} dias` : 'Defina uma mudança para comparar';
+}
+async function refresh() {
+  clearTimeout(analysisTimer);
+  analysisController?.abort(); analysisController = new AbortController();
+  const current = version;
+  $('form-error').hidden = true;
+  if (!config.devices.length) { report = null; renderDevices(); renderMetrics(); return; }
+  try {
+    const result = await api('/api/analyze', config, analysisController.signal);
+    if (version !== current) return;
+    report = result; renderDevices(); renderMetrics();
+  } catch (error) {
+    if (error.name === 'AbortError' || version !== current) return;
+    report = null; renderMetrics();
+    $('form-error').textContent = error.message; $('form-error').hidden = false;
+  }
+}
+function openDevice(id = null) {
+  editing = id;
+  const d = config.devices.find(d => d.id === id);
+  $('dialog-title').textContent = d ? 'Editar aparelho' : 'Novo aparelho';
+  $('device-name').value = d?.name || '';
+  $('device-watts').value = d?.watts ?? '';
+  $('device-hours').value = d?.hours ?? '';
+  $('device-planned-watts').value = d?.plannedWatts ?? '';
+  $('device-planned-hours').value = d?.plannedHours ?? '';
+  $('device-protected').checked = d?.protected || false;
+  $('delete-device').hidden = !d;
+  $('device-error').hidden = true;
+  syncProtected(); $('device-dialog').showModal();
+}
+function syncProtected() {
+  const protect = $('device-protected').checked;
+  for (const [base, planned] of [['device-watts','device-planned-watts'], ['device-hours','device-planned-hours']]) {
+    $(planned).disabled = protect;
+    if (protect) $(planned).value = $(base).value;
+  }
+}
+$('device-protected').onchange = syncProtected;
+for (const [base, planned] of [['device-watts','device-planned-watts'], ['device-hours','device-planned-hours']]) {
+  $(base).oninput = () => { if (!editing && !$(planned).dataset.edited || $('device-protected').checked) $(planned).value = $(base).value; syncProtected(); };
+  $(planned).oninput = () => { $(planned).dataset.edited = 'true'; };
+}
+$('device-form').onsubmit = (event) => {
+  event.preventDefault();
+  const d = {id: editing || crypto.randomUUID(), name: $('device-name').value.trim(),
+    watts: Number($('device-watts').value), hours: Number($('device-hours').value),
+    plannedWatts: Number($('device-planned-watts').value), plannedHours: Number($('device-planned-hours').value),
+    protected: $('device-protected').checked};
+  if (!d.name) { $('device-error').textContent = 'Informe o nome do aparelho.'; $('device-error').hidden = false; return; }
+  if (editing) config.devices = config.devices.map(old => old.id === editing ? d : old);
+  else config.devices.push(d);
+  $('device-dialog').close(); changed(); toast('Aparelho salvo. Estimativa atualizada.');
+};
+$('delete-device').onclick = () => {
+  const previous = structuredClone(config);
+  config.devices = config.devices.filter(d => d.id !== editing);
+  $('device-dialog').close(); changed();
+  toast('Aparelho excluído.', () => { config = previous; changed(); toast('Aparelho restaurado.'); });
+};
+$('close-dialog').onclick = () => $('device-dialog').close();
+for (const id of ['add-device','empty-add']) $(id).onclick = () => {
+  delete $('device-planned-watts').dataset.edited; delete $('device-planned-hours').dataset.edited; openDevice();
+};
+for (const [id, key] of [['rate','rate'], ['days','days'], ['voltage','voltage']]) {
+  $(id).onchange = () => {
+    if (!$(id).checkValidity() || $(id).value === '') { $(id).reportValidity(); return; }
+    config[key] = Number($(id).value); changed();
+  };
+}
+$('context').onchange = () => { config.context = $('context').value; changed(); };
+$('load-demo').onclick = async () => {
+  const previous = structuredClone(config), oldSample = sample;
+  try {
+    config = await api('/api/sample'); sample = true; changed();
+    toast('Exemplo fictício carregado.', () => { config = previous; sample = oldSample; changed(); toast('Seus dados foram restaurados.'); });
+  } catch { toast('Não foi possível carregar o exemplo. Verifique o servidor.'); }
+};
+async function status() {
+  $('model-status').textContent = 'Verificando Gemma local…';
+  try {
+    const data = await api('/api/status');
+    $('model-dot').classList.toggle('ready', data.available);
+    $('model-status').textContent = data.available ? `${data.model} · pronto neste computador` : data.running ? `${data.model} · modelo não instalado` : 'Ollama não conectado · modo manual disponível';
+  } catch { $('model-status').textContent = 'Não foi possível verificar o Ollama'; $('model-dot').classList.remove('ready'); }
+}
+$('check-model').onclick = status;
+function pickPlan(plan) {
+  $('ai-error').hidden = true;
+  $('plan-placeholder').hidden = true; $('chosen-plan').hidden = false;
+  followupQuestion = plan.provider === 'ollama' ? plan.question : '';
+  $('advisor-followup').hidden = !followupQuestion || (config.advisorAnswers || []).length >= 4;
+  $('advisor-question').textContent = followupQuestion;
+  $('advisor-answer').value = '';
+  if (plan.decision === 'clarify') {
+    chosen = null; $('comparison-section').hidden = true;
+    $('chosen-plan').innerHTML = `<article class="selected-plan"><div class="plan-provider">✧ Gemma local · orientação para sua casa</div><h3>Antes de sugerir uma mudança</h3><p>${esc(plan.reason)}</p><p class="next-step">${esc(plan.next_step)}</p>${$('advisor-followup').hidden ? `<p class="question">${esc(plan.question)} Atualize a rotina acima para continuar.</p>` : ''}</article>`;
+    return;
+  }
+  chosen = plan;
+  const c = plan.candidate;
+  $('chosen-plan').innerHTML = `<article class="selected-plan"><div class="plan-provider">${plan.provider === 'ollama' ? `✧ Gemma local · ${esc(plan.model)}` : 'Ordenação por potencial · sem IA'}</div><h3>${esc(c.name)}</h3><p>${esc(plan.reason)}</p><p class="next-step">${esc(plan.next_step)}</p>${plan.experiment ? `<p><strong>Uma experiência de ${num(plan.experiment.duration_days)} dias</strong><br>${esc(plan.experiment.check)}</p>` : ''}${plan.question && $('advisor-followup').hidden ? `<p class="question">${esc(plan.question)}</p>` : ''}</article>`;
+  const baseline = report.total.baseline_cost_brl;
+  const after = c.household_after_cost_brl;
+  const max = Math.max(1, baseline, after);
+  $('comparison-chart').innerHTML = `<div class="chart-line"><div class="chart-label"><span>Como usa hoje</span><strong>${money(baseline)}</strong></div><div class="chart-bar"><span style="width:${baseline / max * 100}%"></span></div></div><div class="chart-line after"><div class="chart-label"><span>Com esta mudança</span><strong>${money(after)}</strong></div><div class="chart-bar"><span style="width:${after / max * 100}%"></span></div></div>`;
+  $('chosen-saving').textContent = money(c.modeled_variable_cost_reduction_brl);
+  $('chosen-caption').textContent = `${num(c.energy_reduction_kwh, 2)} kWh a menos em ${num(config.days)} dias, mantendo as demais hipóteses de uso.`;
+  $('comparison-section').hidden = false;
+}
+$('use-demo-plan').onclick = async () => {
+  await refresh();
+  if (!report?.opportunities.length) { toast('Edite um aparelho e proponha um uso com menor consumo.'); return; }
+  const c = report.opportunities[0];
+  pickPlan({provider: 'calculator', candidate: c, reason: 'Esta é a proposta com maior redução estimada entre as opções cadastradas. Sua rotina ainda precisa ser considerada antes de experimentar.',
+    next_step: `Compare o uso atual (${num(c.watts)} W por ${num(c.hours, 2)} h/dia) com sua proposta (${num(c.plannedWatts)} W por ${num(c.plannedHours, 2)} h/dia).`,
+    question: 'Essa mudança é possível sem prejudicar uma atividade importante para você?'});
+};
+async function askAdvisor() {
+  await refresh();
+  if (!report) { toast('Cadastre um aparelho e confira os valores antes de consultar o Gemma.'); return; }
+  const current = version, button = $('ask-ai');
+  const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 100000);
+  button.disabled = true; button.textContent = '✧ Gemma está considerando sua rotina…'; $('ai-error').hidden = true;
+  try {
+    const plan = await api('/api/advise', config, controller.signal);
+    if (version !== current) { toast('Os dados mudaram. Gere um novo plano com os valores atuais.'); return; }
+    pickPlan(plan); toast(plan.decision === 'clarify' ? 'Gemma precisa de uma informação para orientar sua escolha.' : 'Plano personalizado pelo Gemma local.');
+  } catch (error) {
+    if (version !== current) return;
+    $('ai-error').textContent = error.name === 'AbortError' ? 'O modelo demorou para responder. Tente novamente ou use o cálculo sem IA.' : error.message;
+    $('ai-error').hidden = false; $('model-setup').open = true;
+  } finally {
+    clearTimeout(timeout); button.disabled = false; button.textContent = '✧ Encontrar uma mudança com Gemma';
+  }
+}
+$('ask-ai').onclick = askAdvisor;
+$('advisor-followup').onsubmit = async (event) => {
+  event.preventDefault();
+  const answer = $('advisor-answer').value.trim();
+  if (!answer || !followupQuestion || $('ask-ai').disabled) return;
+  const previous = config.advisorAnswers || [];
+  if (previous.length >= 4) { toast('Atualize sua rotina e recomece a conversa para continuar.'); return; }
+  config.advisorAnswers = [...previous, {question: followupQuestion, answer}];
+  changed(true); await askAdvisor();
+};
+$('clear-answers').onclick = () => { changed(); toast('Conversa reiniciada. Sua rotina e seus aparelhos foram mantidos.'); };
+function renderHistory() {
+  $('history-count').textContent = `${history.length} ${history.length === 1 ? 'registro' : 'registros'}`;
+  $('history-list').innerHTML = history.length ? history.map((h, i) => `<div class="history-row"><div><strong>${esc(h.plan.candidate.name)}</strong><small>${new Date(h.date).toLocaleDateString('pt-BR')} · ${num(h.days)} dias · projeção ${h.sample ? 'com dados fictícios' : 'manual'}</small></div><div class="history-saving">${money(h.plan.candidate.modeled_variable_cost_reduction_brl)}<small> estimados</small></div><button class="text-button" data-delete-history="${i}" aria-label="Excluir simulação de ${esc(h.plan.candidate.name)}">×</button></div>`).join('') : '<p class="history-empty">Suas escolhas ficam aqui. Salve uma simulação para acompanhar sua jornada.<br>Os registros permanecem apenas neste navegador.</p>';
+  $('history-list').querySelectorAll('[data-delete-history]').forEach(b => b.onclick = () => {
+    const previous = structuredClone(history); history.splice(Number(b.dataset.deleteHistory), 1); persist(); renderHistory();
+    toast('Simulação excluída.', () => { history = previous; persist(); renderHistory(); });
+  });
+}
+$('save-experiment').onclick = () => {
+  if (!chosen) return;
+  history.unshift({date: new Date().toISOString(), days: config.days, sample, plan: structuredClone(chosen)});
+  history = history.slice(0, 10); persist(); renderHistory(); toast('Simulação salva. O resultado continua sendo uma projeção.');
+};
+$('export-report').onclick = () => {
+  if (!chosen || !report) return;
+  const blob = new Blob([JSON.stringify({product: 'WattWise', evidence: 'manual_estimate', sample,
+    created_at: new Date().toISOString(), config, report, selected_plan: chosen}, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = 'wattwise-simulacao.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+document.querySelectorAll('.nav-link').forEach(link => link.onclick = () => {
+  document.querySelectorAll('.nav-link').forEach(item => item.classList.remove('active')); link.classList.add('active');
+});
+syncFields(); renderDevices(); renderMetrics(); renderHistory(); refresh(); status();

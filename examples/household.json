@@ -1,0 +1,20 @@
+{
+  "household_voltage_v": 220,
+  "variable_rate_brl_per_kwh": 1.0,
+  "projection_days": 30,
+  "appliances": [
+    {
+      "name": "Fictional workstation",
+      "baseline": [
+        {"name": "Active work", "hours": 9, "components": [{"name": "Computer, estimated wall input", "watts": 140}, {"name": "Monitor", "watts": 40}]},
+        {"name": "Left idle overnight", "hours": 8, "watts": 100},
+        {"name": "Light use", "hours": 7, "watts": 30}
+      ],
+      "proposed": [
+        {"name": "Active work", "hours": 9, "components": [{"name": "Computer, estimated wall input", "watts": 140}, {"name": "Monitor", "watts": 40}]},
+        {"name": "Sleep overnight", "hours": 8, "watts": 10},
+        {"name": "Light use", "hours": 7, "watts": 30}
+      ]
+    }
+  ]
+}
